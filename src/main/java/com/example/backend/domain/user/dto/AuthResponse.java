@@ -1,4 +1,7 @@
 package com.example.backend.domain.user.dto;
 
-public class AuthResponse {
+public record AuthResponse(
+        String accessToken,
+        String tokenType
+) {
 }
