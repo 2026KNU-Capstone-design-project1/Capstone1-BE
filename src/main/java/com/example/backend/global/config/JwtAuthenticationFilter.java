@@ -39,11 +39,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = authorization.substring(7);
 
             if (jwtTokenProvider.validateToken(token)) {
-                String email = jwtTokenProvider.getEmail(token);
+                String loginId = jwtTokenProvider.getLoginId(token);
 
                 var authentication =
                         new UsernamePasswordAuthenticationToken(
-                                email, null, List.of()
+                                loginId, null, List.of()
                         );
 
                 authentication.setDetails(

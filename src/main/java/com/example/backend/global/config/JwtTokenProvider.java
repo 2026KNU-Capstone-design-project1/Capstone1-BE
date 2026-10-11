@@ -39,8 +39,13 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String getEmail(String token) {
-        return parseClaims(token).getSubject();
+    public String getLoginId(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
     }
 
     public boolean validateToken(String token) {

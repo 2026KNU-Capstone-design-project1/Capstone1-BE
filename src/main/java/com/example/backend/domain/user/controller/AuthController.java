@@ -34,4 +34,12 @@ public class AuthController {
     ) {
         return authService.login(request);
     }
+
+    @PostMapping("/check-loginId")
+    public java.util.Map<String, Boolean> checkLoginId(
+            @Valid @RequestBody LoginRequest.CheckLoginId request
+    ) {
+        return java.util.Map.of("available",
+                authService.isLoginIdAvailable(request.loginId()));
+    }
 }

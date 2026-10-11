@@ -15,4 +15,10 @@ public record LoginRequest(
         String password
 
 ) {
+        public record CheckLoginId(
+                @NotBlank
+                @Size(max = 255)
+                String loginId
+        ){}
+
 }

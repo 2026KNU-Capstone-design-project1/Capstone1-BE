@@ -82,4 +82,25 @@ public class AuthService {
 
         return new AuthResponse(token, "Bearer");
     }
+
+    @Transactional(readOnly = true)
+    public boolean isLoginIdAvailable(String loginId) {
+        if (loginId == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "로그인 아이디를 입력해주세요."
+            );
+        }
+
+        String normalizedLoginId = loginId.trim();
+
+        if (normalizedLoginId.isEmpty()
+                || normalizedLoginId.length() > 255) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "로그인 아이디는 공백이 아닌 1~255자여야 합니다."
+            );
+        }
+        return !userRepository.existsByLoginId(normalizedLoginId);
+    }
 }
