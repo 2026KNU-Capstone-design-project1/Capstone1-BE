@@ -12,7 +12,7 @@ public record SignupRequest(
         String loginId,
 
         @NotBlank
-        @Size(min = 8, max = 72)
+        @Size(min = 8, max = 20)
         String password,
 
         @NotBlank
