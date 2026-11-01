@@ -16,7 +16,8 @@ public record RiskResponse(
         Long firstDetectedMs,
         Long lastDetectedMs,
         OffsetDateTime resolvedAt,
-        String evidence
+        String evidence,
+        OffsetDateTime createdAt
 ) {
 
     public static RiskResponse from(RiskIssue risk)
@@ -31,7 +32,8 @@ public record RiskResponse(
                 risk.getFirstDetectedMs(),
                 risk.getLastDetectedMs(),
                 risk.getResolvedAt(),
-                risk.getEvidence()
+                risk.getEvidence(),
+                risk.getCreatedAt()
         );
     }
 }
