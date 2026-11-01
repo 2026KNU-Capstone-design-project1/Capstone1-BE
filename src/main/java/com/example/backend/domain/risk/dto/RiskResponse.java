@@ -16,6 +16,7 @@ public record RiskResponse(
         Long firstDetectedMs,
         Long lastDetectedMs,
         OffsetDateTime resolvedAt,
+<<<<<<< HEAD
         String evidence,
         OffsetDateTime createdAt,
         Long userId,
@@ -23,6 +24,12 @@ public record RiskResponse(
 ) {
 
     public static RiskResponse from(RiskIssue risk, String managerName)
+=======
+        String evidence
+) {
+
+    public static RiskResponse from(RiskIssue risk)
+>>>>>>> origin/dev
     {
         return new RiskResponse(
                 risk.getId(),
@@ -34,10 +41,14 @@ public record RiskResponse(
                 risk.getFirstDetectedMs(),
                 risk.getLastDetectedMs(),
                 risk.getResolvedAt(),
+<<<<<<< HEAD
                 risk.getEvidence(),
                 risk.getCreatedAt(),
                 risk.getUserId(),
                 managerName
+=======
+                risk.getEvidence()
+>>>>>>> origin/dev
         );
     }
 }
