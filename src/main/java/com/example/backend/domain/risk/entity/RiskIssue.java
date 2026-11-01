@@ -45,7 +45,28 @@ public class RiskIssue {
     @Column(name = "evidence", length = 255)
     private String evidence;
 
+<<<<<<< HEAD
+    @Column(
+            name = "created_at",
+            nullable = false,
+            updatable = false,
+            columnDefinition = "TIMESTAMPTZ"
+    )
+    private OffsetDateTime createdAt;
+
+    @Column(name="user_id")
+    private Long userId;
+
+=======
+>>>>>>> origin/dev
     protected RiskIssue() {}
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now(ZoneOffset.UTC);
+        }
+    }
 
     public RiskIssue(
             Long facilityId,
@@ -124,4 +145,19 @@ public class RiskIssue {
     public String getEvidence() {
         return evidence;
     }
+<<<<<<< HEAD
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void updateManager(Long userId) {
+        this.userId = userId;
+    }
+=======
+>>>>>>> origin/dev
 }

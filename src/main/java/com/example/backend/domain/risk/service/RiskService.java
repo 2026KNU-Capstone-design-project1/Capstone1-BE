@@ -5,6 +5,7 @@ import com.example.backend.domain.risk.dto.RiskResponse;
 import com.example.backend.domain.risk.dto.RiskStatusUpdateRequest;
 import com.example.backend.domain.risk.entity.RiskIssue;
 import com.example.backend.domain.risk.repository.RiskRepository;
+import com.example.backend.domain.risk.dto.RiskManagerUpdateRequest;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -45,7 +46,7 @@ public class RiskService {
 
         RiskIssue savedRisk = riskRepository.save(risk);
 
-        return RiskResponse.from(savedRisk);
+        return toResponse(savedRisk);
     }
 
     public Page<RiskResponse> getRisks(
@@ -84,11 +85,11 @@ public class RiskService {
             );
         }
 
-        return risks.map(RiskResponse::from);
+        return risks.map(this::toResponse);
     }
 
     public RiskResponse getRisk(Long id) {
-        return RiskResponse.from(findRisk(id));
+        return toResponse(findRisk(id));
     }
 
     @Transactional
@@ -100,7 +101,28 @@ public class RiskService {
 
         risk.updateStatus(request.status());
 
-        return RiskResponse.from(risk);
+        return toResponse(risk);
+    }
+
+    @Transactional
+    public RiskResponse updateManager(
+            Long id,
+            RiskManagerUpdateRequest request
+    ) {
+        RiskIssue risk = findRisk(id);
+        if (request.userId() != null && !riskRepository.existManager(request.userId()))
+        {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SITE_MANAGER 역할의 사용자를 선택해주세요.");
+        }
+
+        risk.updateManager(request.userId());
+        return toResponse(risk);
+    }
+
+    private RiskResponse toResponse(RiskIssue risk)
+    {
+        String managerName = risk.getUserId() == null ? null : riskRepository.findManagerName(risk.getUserId());
+        return RiskResponse.from(risk, managerName);
     }
 
     private RiskIssue findRisk(Long id) {
