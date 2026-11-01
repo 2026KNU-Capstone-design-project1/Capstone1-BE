@@ -17,10 +17,12 @@ public record RiskResponse(
         Long lastDetectedMs,
         OffsetDateTime resolvedAt,
         String evidence,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        Long userId,
+        String managerName
 ) {
 
-    public static RiskResponse from(RiskIssue risk)
+    public static RiskResponse from(RiskIssue risk, String managerName)
     {
         return new RiskResponse(
                 risk.getId(),
@@ -33,7 +35,9 @@ public record RiskResponse(
                 risk.getLastDetectedMs(),
                 risk.getResolvedAt(),
                 risk.getEvidence(),
-                risk.getCreatedAt()
+                risk.getCreatedAt(),
+                risk.getUserId(),
+                managerName
         );
     }
 }
