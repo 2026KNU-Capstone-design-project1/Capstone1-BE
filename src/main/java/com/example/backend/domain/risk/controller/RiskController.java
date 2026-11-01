@@ -45,7 +45,7 @@ public class RiskController {
             @RequestParam(name = "page", defaultValue = "0")
             int page,
 
-            @RequestParam(name = "size", defaultValue = "20")
+            @RequestParam(name = "size", defaultValue = "10")
             int size
     ) {
         return riskService.getRisks(facilityId, page, size);
