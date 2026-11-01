@@ -33,5 +33,8 @@ public record RiskCreateRequest(
         Long lastDetectedMs,
 
         @Size(max = 255)
-        String evidence
+        String evidence,
+
+        @Size(max = 1000)
+                String location
 ) {}

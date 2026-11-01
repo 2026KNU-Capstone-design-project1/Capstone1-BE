@@ -36,6 +36,9 @@ public class RiskIssue {
     @Column(name = "last_detected_ms")
     private Long lastDetectedMs;
 
+    @Column(name = "location", length = 1000)
+    private String location;
+
     @Column(
             name = "resolved_at",
             columnDefinition = "TIMESTAMPTZ"
@@ -72,8 +75,9 @@ public class RiskIssue {
             RiskLevel riskLevel,
             Long firstDetectedMs,
             Long lastDetectedMs,
-            String evidence
-    ) {
+            String evidence,
+            String location
+            ) {
         this.facilityId = facilityId;
         this.riskType = riskType;
         this.hazard = hazard;
@@ -83,6 +87,7 @@ public class RiskIssue {
         this.evidence = evidence;
         this.status = RiskStatus.OPEN;
         this.resolvedAt = null;
+        this.location = location;
     }
 
     public void updateStatus(RiskStatus newStatus) {
@@ -149,5 +154,9 @@ public class RiskIssue {
 
     public Long getUserId() {
         return userId;
+    }
+
+    public String getLocation() {
+        return location;
     }
 }
