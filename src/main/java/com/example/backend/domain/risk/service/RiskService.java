@@ -41,7 +41,8 @@ public class RiskService {
                 request.riskLevel(),
                 request.firstDetectedMs(),
                 request.lastDetectedMs(),
-                request.evidence()
+                request.evidence(),
+                request.location()
         );
 
         RiskIssue savedRisk = riskRepository.save(risk);

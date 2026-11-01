@@ -19,7 +19,8 @@ public record RiskResponse(
         String evidence,
         OffsetDateTime createdAt,
         Long userId,
-        String managerName
+        String managerName,
+        String location
 ) {
 
     public static RiskResponse from(
@@ -39,7 +40,8 @@ public record RiskResponse(
                 risk.getEvidence(),
                 risk.getCreatedAt(),
                 risk.getUserId(),
-                managerName
+                managerName,
+                risk.getLocation()
         );
     }
 
