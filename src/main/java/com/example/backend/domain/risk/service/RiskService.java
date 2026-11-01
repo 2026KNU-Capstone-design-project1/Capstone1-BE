@@ -7,13 +7,12 @@ import com.example.backend.domain.risk.entity.RiskIssue;
 import com.example.backend.domain.risk.repository.RiskRepository;
 import com.example.backend.domain.risk.dto.RiskManagerUpdateRequest;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -50,11 +49,7 @@ public class RiskService {
         return toResponse(savedRisk);
     }
 
-    public Page<RiskResponse> getRisks(
-            Long facilityId,
-            int page,
-            int size
-    ) {
+    public List<RiskResponse> getRisks(Long facilityId) {
         if (facilityId != null && facilityId <= 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -62,31 +57,15 @@ public class RiskService {
             );
         }
 
-        if (page < 0 || size < 1 || size > 100) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "page는 0 이상, size는 1~100이어야 합니다."
-            );
-        }
+        Sort sort = Sort.by(Sort.Direction.DESC, "id");
 
-        PageRequest pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(Sort.Direction.DESC, "id")
-        );
+        List<RiskIssue> risks = facilityId == null
+                ? riskRepository.findAll(sort)
+                : riskRepository.findByFacilityId(facilityId, sort);
 
-        Page<RiskIssue> risks;
-
-        if (facilityId == null) {
-            risks = riskRepository.findAll(pageable);
-        } else {
-            risks = riskRepository.findByFacilityId(
-                    facilityId,
-                    pageable
-            );
-        }
-
-        return risks.map(this::toResponse);
+        return risks.stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     public RiskResponse getRisk(Long id) {

@@ -8,12 +8,10 @@ import com.example.backend.domain.risk.dto.RiskManagerUpdateRequest;
 
 import jakarta.validation.Valid;
 
-import org.springframework.data.domain.Page;
+import java.net.URI;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-
-import java.net.URI;
 
 @RestController
 @RequestMapping("/api/risks")
@@ -38,17 +36,11 @@ public class RiskController {
     }
 
     @GetMapping
-    public Page<RiskResponse> getRisks(
+    public List<RiskResponse> getRisks(
             @RequestParam(name = "facilityId", required = false)
-            Long facilityId,
-
-            @RequestParam(name = "page", defaultValue = "0")
-            int page,
-
-            @RequestParam(name = "size", defaultValue = "20")
-            int size
+            Long facilityId
     ) {
-        return riskService.getRisks(facilityId, page, size);
+        return riskService.getRisks(facilityId);
     }
 
     @GetMapping("/{riskId}")
