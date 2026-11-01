@@ -4,12 +4,14 @@ import com.example.backend.domain.risk.dto.RiskCreateRequest;
 import com.example.backend.domain.risk.dto.RiskResponse;
 import com.example.backend.domain.risk.dto.RiskStatusUpdateRequest;
 import com.example.backend.domain.risk.service.RiskService;
+import com.example.backend.domain.risk.dto.RiskManagerUpdateRequest;
 
 import jakarta.validation.Valid;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.net.URI;
 
@@ -62,5 +64,13 @@ public class RiskController {
             @Valid @RequestBody RiskStatusUpdateRequest request
     ) {
         return riskService.updateStatus(id, request);
+    }
+
+    @PatchMapping("/{riskId}/manager")
+    public RiskResponse updateManager(
+            @PathVariable("riskId") Long riskId,
+            @Valid @RequestBody RiskManagerUpdateRequest request
+    ) {
+        return riskService.updateManager(riskId, request);
     }
 }

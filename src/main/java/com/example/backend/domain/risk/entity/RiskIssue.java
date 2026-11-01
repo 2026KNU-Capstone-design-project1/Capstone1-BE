@@ -53,6 +53,9 @@ public class RiskIssue {
     )
     private OffsetDateTime createdAt;
 
+    @Column(name="user_id")
+    private Long userId;
+
     protected RiskIssue() {}
 
     @PrePersist
@@ -142,5 +145,13 @@ public class RiskIssue {
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void updateManager(Long userId) {
+        this.userId = userId;
     }
 }
