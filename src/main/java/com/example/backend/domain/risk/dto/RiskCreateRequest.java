@@ -18,6 +18,9 @@ public record RiskCreateRequest(
         @Size(max = 255)
         String riskType,
 
+        @Size(max = 255)
+        String hazard,
+
         @NotNull
         RiskLevel riskLevel,
 
@@ -27,5 +30,8 @@ public record RiskCreateRequest(
 
         @NotNull
         @PositiveOrZero
-        Long lastDetectedMs
+        Long lastDetectedMs,
+
+        @Size(max = 255)
+        String evidence
 ) {}

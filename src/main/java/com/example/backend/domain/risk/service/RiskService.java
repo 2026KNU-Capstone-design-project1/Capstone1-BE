@@ -16,21 +16,17 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Transactional(readOnly = true)
-public class RiskService
-{
+public class RiskService {
 
     private final RiskRepository riskRepository;
 
-    public RiskService(RiskRepository riskRepository)
-    {
+    public RiskService(RiskRepository riskRepository) {
         this.riskRepository = riskRepository;
     }
 
     @Transactional
-    public RiskResponse create(RiskCreateRequest request)
-    {
-        if (request.lastDetectedMs() < request.firstDetectedMs())
-        {
+    public RiskResponse create(RiskCreateRequest request) {
+        if (request.lastDetectedMs() < request.firstDetectedMs()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "마지막 감지 시점은 첫 감지 시점보다 빠를 수 없습니다."
@@ -40,30 +36,31 @@ public class RiskService
         RiskIssue risk = new RiskIssue(
                 request.facilityId(),
                 request.riskType().trim(),
+                request.hazard(),
                 request.riskLevel(),
                 request.firstDetectedMs(),
-                request.lastDetectedMs()
+                request.lastDetectedMs(),
+                request.evidence()
         );
 
         RiskIssue savedRisk = riskRepository.save(risk);
 
         return RiskResponse.from(savedRisk);
     }
+
     public Page<RiskResponse> getRisks(
             Long facilityId,
             int page,
             int size
     ) {
-        if (facilityId != null && facilityId <= 0)
-        {
+        if (facilityId != null && facilityId <= 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "시설물 ID는 양수여야 합니다."
             );
         }
 
-        if (page < 0 || size < 1 || size > 100)
-        {
+        if (page < 0 || size < 1 || size > 100) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "page는 0 이상, size는 1~100이어야 합니다."
@@ -78,12 +75,9 @@ public class RiskService
 
         Page<RiskIssue> risks;
 
-        if (facilityId == null)
-        {
+        if (facilityId == null) {
             risks = riskRepository.findAll(pageable);
-        }
-        else
-        {
+        } else {
             risks = riskRepository.findByFacilityId(
                     facilityId,
                     pageable
@@ -93,8 +87,7 @@ public class RiskService
         return risks.map(RiskResponse::from);
     }
 
-    public RiskResponse getRisk(Long id)
-    {
+    public RiskResponse getRisk(Long id) {
         return RiskResponse.from(findRisk(id));
     }
 
@@ -110,8 +103,7 @@ public class RiskService
         return RiskResponse.from(risk);
     }
 
-    private RiskIssue findRisk(Long id)
-    {
+    private RiskIssue findRisk(Long id) {
         return riskRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,

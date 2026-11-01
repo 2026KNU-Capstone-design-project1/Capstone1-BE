@@ -10,23 +10,28 @@ public record RiskResponse(
         Long id,
         Long facilityId,
         String riskType,
+        String hazard,
         RiskStatus status,
         RiskLevel riskLevel,
         Long firstDetectedMs,
         Long lastDetectedMs,
-        OffsetDateTime resolvedAt
+        OffsetDateTime resolvedAt,
+        String evidence
 ) {
+
     public static RiskResponse from(RiskIssue risk)
     {
         return new RiskResponse(
                 risk.getId(),
                 risk.getFacilityId(),
                 risk.getRiskType(),
+                risk.getHazard(),
                 risk.getStatus(),
                 risk.getRiskLevel(),
                 risk.getFirstDetectedMs(),
                 risk.getLastDetectedMs(),
-                risk.getResolvedAt()
+                risk.getResolvedAt(),
+                risk.getEvidence()
         );
     }
 }

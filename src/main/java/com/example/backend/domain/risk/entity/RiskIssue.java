@@ -1,21 +1,26 @@
 package com.example.backend.domain.risk.entity;
+
 import jakarta.persistence.*;
+
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 @Entity
-@Table(name="risk_issues")
-public class RiskIssue
-{
+@Table(name = "risks_issue")
+public class RiskIssue {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name="facility_id")
+    @Column(name = "facility_id")
     private Long facilityId;
 
-    @Column(name="risk_type", length=255)
+    @Column(name = "risk_type", length = 255)
     private String riskType;
+
+    @Column(name = "hazard", length = 255)
+    private String hazard;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 255)
@@ -37,26 +42,32 @@ public class RiskIssue
     )
     private OffsetDateTime resolvedAt;
 
+    @Column(name = "evidence", length = 255)
+    private String evidence;
+
     protected RiskIssue() {}
 
     public RiskIssue(
             Long facilityId,
             String riskType,
+            String hazard,
             RiskLevel riskLevel,
             Long firstDetectedMs,
-            Long lastDetectedMs
+            Long lastDetectedMs,
+            String evidence
     ) {
         this.facilityId = facilityId;
         this.riskType = riskType;
+        this.hazard = hazard;
         this.riskLevel = riskLevel;
         this.firstDetectedMs = firstDetectedMs;
         this.lastDetectedMs = lastDetectedMs;
+        this.evidence = evidence;
         this.status = RiskStatus.OPEN;
         this.resolvedAt = null;
     }
 
-    public void updateStatus(RiskStatus newStatus)
-    {
+    public void updateStatus(RiskStatus newStatus) {
         if (this.status == newStatus)
         {
             return;
@@ -74,43 +85,43 @@ public class RiskIssue
         }
     }
 
-    public Long getId()
-    {
+    public Long getId() {
         return id;
     }
 
-    public Long getFacilityId()
-    {
+    public Long getFacilityId() {
         return facilityId;
     }
 
-    public String getRiskType()
-    {
+    public String getRiskType() {
         return riskType;
     }
 
-    public RiskStatus getStatus()
-    {
+    public String getHazard() {
+        return hazard;
+    }
+
+    public RiskStatus getStatus() {
         return status;
     }
 
-    public RiskLevel getRiskLevel()
-    {
+    public RiskLevel getRiskLevel() {
         return riskLevel;
     }
 
-    public Long getFirstDetectedMs()
-    {
+    public Long getFirstDetectedMs() {
         return firstDetectedMs;
     }
 
-    public Long getLastDetectedMs()
-    {
+    public Long getLastDetectedMs() {
         return lastDetectedMs;
     }
 
-    public OffsetDateTime getResolvedAt()
-    {
+    public OffsetDateTime getResolvedAt() {
         return resolvedAt;
+    }
+
+    public String getEvidence() {
+        return evidence;
     }
 }
