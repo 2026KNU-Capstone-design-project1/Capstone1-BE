@@ -3,6 +3,7 @@ package com.example.backend.domain.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record SignupRequest(
@@ -23,7 +24,14 @@ public record SignupRequest(
 
         @Email
         @Size(max = 255)
-        String email
+        String email,
+
+        @NotBlank
+        @Pattern(
+                regexp = "ADMIN|SITE_MANAGER",
+                message = "역할은 ADMIN 또는 SITE_MANAGER여야 합니다."
+        )
+        String role
 
 ) {
 }

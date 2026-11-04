@@ -45,14 +45,15 @@ public class User {
             String password,
             String name,
             Long hp,
-            String email
+            String email,
+            String role
     ) {
         this.loginId = loginId;
         this.password = password;
         this.name = name;
         this.hp = hp;
         this.email = email;
-        this.role = "USER";
+        this.role = role;
         this.siteId = null;
     }
 
