@@ -50,7 +50,8 @@ public class AuthService {
                 request.hp(),
                 request.email() == null
                         ? null
-                        : request.email().trim()
+                        : request.email().trim(),
+                request.role()
         );
 
         userRepository.save(user);
@@ -80,7 +81,7 @@ public class AuthService {
                 user.getLoginId()
         );
 
-        return new AuthResponse(token, "Bearer");
+        return new AuthResponse(token, "Bearer", user.getRole());
     }
 
     @Transactional(readOnly = true)
