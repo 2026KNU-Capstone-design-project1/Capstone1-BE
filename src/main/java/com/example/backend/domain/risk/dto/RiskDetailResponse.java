@@ -25,9 +25,29 @@ public record RiskDetailResponse(
         String siteName,
         String zoneName,
         String imageUrl,
-        Map<String, Double> bbox,
+        BboxResponse bbox,
         List<RelatedVideoResponse> relatedVideos
 ) {
+    public record BboxResponse(Double x, Double y, Double width, Double height) {
+        private static BboxResponse from(Map<String, Double> bbox) {
+            if (bbox == null) {
+                return null;
+            }
+
+            Double width = bbox.get("width");
+            if (width == null) {
+                width = bbox.get("wide");
+            }
+
+            return new BboxResponse(
+                    bbox.get("x"),
+                    bbox.get("y"),
+                    width,
+                    bbox.get("height")
+            );
+        }
+    }
+
     public record RelatedVideoResponse(Long videoId, String videoUrl) {}
     public static RiskDetailResponse from(
             RiskResponse risk,
@@ -59,7 +79,7 @@ public record RiskDetailResponse(
                 siteName,
                 zoneName,
                 imageUrl,
-                bbox,
+                BboxResponse.from(bbox),
                 relatedVideos
         );
     }
