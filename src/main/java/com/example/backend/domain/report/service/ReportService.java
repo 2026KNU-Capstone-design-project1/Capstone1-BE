@@ -7,6 +7,7 @@ import com.example.backend.domain.report.entity.ReportRiskIssue;
 import com.example.backend.domain.report.repository.ReportRepository;
 import com.example.backend.domain.report.repository.ReportRiskIssueRepository;
 import com.example.backend.domain.risk.dto.RiskDetailResponse.BboxResponse;
+import com.example.backend.domain.report.dto.CollectionReportDetailResponse;
 
 import com.example.backend.domain.risk.entity.RiskIssue;
 import com.example.backend.domain.risk.repository.RiskRepository;
@@ -165,6 +166,40 @@ public class ReportService {
     public List<ReportRepository.ReportListItem> getReportList()
     {
         return reportRepository.findReportList();
+    }
+
+    public CollectionReportDetailResponse getCollectionReport(Long reportId) {
+        ReportRepository.CollectionDetailRow report = reportRepository
+                .findCollectionDetail(reportId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "종합 보고서를 찾을 수 없습니다."
+                ));
+
+        String payload = report.getDetailPayload();
+        if (payload == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "종합 보고서 본문이 아직 저장되지 않았습니다."
+            );
+        }
+
+        var content = objectMapper.readTree(payload);
+        if (!content.isObject()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "종합 보고서 본문 형식이 올바르지 않습니다."
+            );
+        }
+
+        return new CollectionReportDetailResponse(
+                report.getReportId(),
+                "COLLECTION",
+                report.getTitle(),
+                report.getAnalysisPeriod(),
+                report.getIncludedRiskCount(),
+                content
+        );
     }
 
     public ReportResponse getIndividualReport(Long reportId)

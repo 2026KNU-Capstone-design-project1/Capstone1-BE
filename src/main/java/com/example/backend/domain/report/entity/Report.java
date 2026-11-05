@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
+
 @Entity
 @Table(name = "reports")
 public class Report
@@ -100,8 +101,5 @@ public class Report
         return legalBasis;
     }
 
-    public OffsetDateTime getCreatedAt()
-    {
-        return createdAt;
-    }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
 }
