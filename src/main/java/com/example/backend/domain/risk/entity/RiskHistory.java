@@ -19,23 +19,29 @@ public class RiskHistory {
     @Column(name = "status", length = 255, nullable = false)
     private RiskStatus status;
 
-    @Column(
-            name = "changed_at",
-            nullable = false,
-            columnDefinition = "TIMESTAMPTZ"
-    )
+    @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ")
     private OffsetDateTime changedAt;
+
+    @Column(name = "event_type")
+    private String eventType;
+
+    @Column(name = "cycle")
+    private Long cycle;
 
     protected RiskHistory() {}
 
     public RiskHistory(
             Long riskIssueId,
             RiskStatus status,
-            OffsetDateTime changedAt
+            OffsetDateTime changedAt,
+            String eventType,
+            Long cycle
     ) {
         this.riskIssueId = riskIssueId;
         this.status = status;
         this.changedAt = changedAt;
+        this.eventType = eventType;
+        this.cycle = cycle;
     }
 
     public Long getId()
@@ -56,5 +62,15 @@ public class RiskHistory {
     public OffsetDateTime getChangedAt()
     {
         return changedAt;
+    }
+
+    public String getEventType()
+    {
+        return eventType;
+    }
+
+    public Long getCycle()
+    {
+        return cycle;
     }
 }
