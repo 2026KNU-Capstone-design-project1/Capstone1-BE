@@ -105,12 +105,12 @@ public class RiskService {
                 .map(RiskHistoryResponse::from)
                 .toList();
 
-        List<RiskDetailResponse.RelatedVideoResponse> relatedVideos =
+        /*List<RiskDetailResponse.RelatedVideoResponse> relatedVideos =
                 riskRepository.findRelatedVideos(id).stream()
                         .map(video -> new RiskDetailResponse.RelatedVideoResponse(
                                 video.getVideoId(),
                                 video.getVideoUrl()))
-                        .toList();
+                        .toList();*/
 
         return RiskDetailResponse.from(
                 toResponse(risk),
@@ -120,7 +120,8 @@ public class RiskService {
                 context == null ? null : context.getZoneName(),
                 risk.getImageUrl(),
                 risk.getBbox(),
-                relatedVideos
+                List.of()
+                /*위 List.of는 비디오 구현시 삭제 relatedVideos*/
         );
     }
 

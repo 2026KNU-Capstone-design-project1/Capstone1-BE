@@ -29,7 +29,7 @@ public record RiskDetailResponse(
         List<RelatedVideoResponse> relatedVideos
 ) {
     public record BboxResponse(Double x, Double y, Double width, Double height) {
-        private static BboxResponse from(Map<String, Double> bbox) {
+        public static BboxResponse from(Map<String, Double> bbox) {
             if (bbox == null) {
                 return null;
             }
