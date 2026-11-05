@@ -6,6 +6,7 @@ import com.example.backend.domain.report.entity.Report;
 import com.example.backend.domain.report.entity.ReportRiskIssue;
 import com.example.backend.domain.report.repository.ReportRepository;
 import com.example.backend.domain.report.repository.ReportRiskIssueRepository;
+import com.example.backend.domain.risk.dto.RiskDetailResponse.BboxResponse;
 
 import com.example.backend.domain.risk.entity.RiskIssue;
 import com.example.backend.domain.risk.repository.RiskRepository;
@@ -214,7 +215,9 @@ public class ReportService {
                 report.getSafetyStep(),
                 report.getLegalBasis(),
                 risk.getRiskLevel() == null ? null : risk.getRiskLevel().name(),
-                report.getCreatedAt()
+                report.getCreatedAt(),
+                risk.getImageUrl(),
+                BboxResponse.from(risk.getBbox())
         );
     }
 
