@@ -11,6 +11,7 @@ import com.example.backend.domain.report.dto.CollectionReportDetailResponse;
 
 import com.example.backend.domain.risk.entity.RiskIssue;
 import com.example.backend.domain.risk.repository.RiskRepository;
+import com.example.backend.global.storage.S3StorageService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,17 +34,20 @@ public class ReportService {
     private final ReportRiskIssueRepository linkRepository;
     private final RiskRepository riskRepository;
     private final ObjectMapper objectMapper;
+    private final S3StorageService storageService;
 
     public ReportService(
             ReportRepository reportRepository,
             ReportRiskIssueRepository linkRepository,
             RiskRepository riskRepository,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            S3StorageService storageService
     ) {
         this.reportRepository = reportRepository;
         this.linkRepository = linkRepository;
         this.riskRepository = riskRepository;
         this.objectMapper = objectMapper;
+        this.storageService = storageService;
     }
 
     @Transactional
@@ -240,6 +244,13 @@ public class ReportService {
             Report report,
             RiskIssue risk
     ) {
+        String imageUrl = risk.getImageUrl() == null
+                || risk.getImageUrl().isBlank()
+                ? null
+                : storageService.createSignedDownloadUrl(
+                        risk.getImageUrl()
+                );
+
         return new ReportResponse(
                 report.getId(),
                 risk.getId(),
@@ -251,7 +262,7 @@ public class ReportService {
                 report.getLegalBasis(),
                 risk.getRiskLevel() == null ? null : risk.getRiskLevel().name(),
                 report.getCreatedAt(),
-                risk.getImageUrl(),
+                imageUrl,
                 BboxResponse.from(risk.getBbox())
         );
     }

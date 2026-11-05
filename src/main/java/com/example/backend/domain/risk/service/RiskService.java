@@ -6,10 +6,11 @@ import com.example.backend.domain.risk.dto.RiskHistoryResponse;
 import com.example.backend.domain.risk.dto.RiskManagerUpdateRequest;
 import com.example.backend.domain.risk.dto.RiskResponse;
 import com.example.backend.domain.risk.dto.RiskStatusUpdateRequest;
-import com.example.backend.domain.risk.entity.RiskHistory;
+import com.example.backend.domain.history.entity.RiskHistory;
 import com.example.backend.domain.risk.entity.RiskIssue;
 import com.example.backend.domain.risk.repository.RiskHistoryRepository;
 import com.example.backend.domain.risk.repository.RiskRepository;
+import com.example.backend.global.storage.S3StorageService;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -27,13 +28,16 @@ public class RiskService {
 
     private final RiskRepository riskRepository;
     private final RiskHistoryRepository riskHistoryRepository;
+    private final S3StorageService storageService;
 
     public RiskService(
             RiskRepository riskRepository,
-            RiskHistoryRepository riskHistoryRepository
+            RiskHistoryRepository riskHistoryRepository,
+            S3StorageService storageService
     ) {
         this.riskRepository = riskRepository;
         this.riskHistoryRepository = riskHistoryRepository;
+        this.storageService = storageService;
     }
 
     @Transactional
@@ -105,12 +109,14 @@ public class RiskService {
                 .map(RiskHistoryResponse::from)
                 .toList();
 
-        /*List<RiskDetailResponse.RelatedVideoResponse> relatedVideos =
-                riskRepository.findRelatedVideos(id).stream()
-                        .map(video -> new RiskDetailResponse.RelatedVideoResponse(
-                                video.getVideoId(),
-                                video.getVideoUrl()))
-                        .toList();*/
+        List<RiskDetailResponse.RelatedVideoResponse> relatedVideos = null;
+
+        String imageUrl = risk.getImageUrl() == null
+                || risk.getImageUrl().isBlank()
+                ? null
+                : storageService.createSignedDownloadUrl(
+                        risk.getImageUrl()
+                );
 
         return RiskDetailResponse.from(
                 toResponse(risk),
@@ -118,10 +124,9 @@ public class RiskService {
                 history,
                 context == null ? null : context.getSiteName(),
                 context == null ? null : context.getZoneName(),
-                risk.getImageUrl(),
+                imageUrl,
                 risk.getBbox(),
-                List.of()
-                /*위 List.of는 비디오 구현시 삭제 relatedVideos*/
+                relatedVideos
         );
     }
 
