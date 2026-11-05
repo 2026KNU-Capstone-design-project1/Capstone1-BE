@@ -1,6 +1,8 @@
 
 package com.example.backend.domain.user.service;
 
+import com.example.backend.domain.site.entity.Site;
+import com.example.backend.domain.site.repository.SiteRepository;
 import com.example.backend.domain.user.dto.AuthResponse;
 import com.example.backend.domain.user.dto.LoginRequest;
 import com.example.backend.domain.user.dto.SignupRequest;
@@ -17,16 +19,21 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AuthService {
 
+    private static final String SITE_MANAGER = "SITE_MANAGER";
+
     private final UserRepository userRepository;
+    private final SiteRepository siteRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
     public AuthService(
             UserRepository userRepository,
+            SiteRepository siteRepository,
             PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider
     ) {
         this.userRepository = userRepository;
+        this.siteRepository = siteRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
     }
@@ -43,6 +50,8 @@ public class AuthService {
             );
         }
 
+        Long siteId = resolveSiteId(request);
+
         User user = new User(
                 loginId,
                 passwordEncoder.encode(request.password()),
@@ -51,10 +60,34 @@ public class AuthService {
                 request.email() == null
                         ? null
                         : request.email().trim(),
-                request.role()
+                request.role(),
+                siteId
         );
 
         userRepository.save(user);
+    }
+
+    private Long resolveSiteId(SignupRequest request) {
+        if (!SITE_MANAGER.equals(request.role())) {
+            return null;
+        }
+
+        if (request.siteName() == null || request.siteName().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "SITE_MANAGER는 현장 이름을 입력해야 합니다."
+            );
+        }
+
+        String siteName = request.siteName().trim();
+
+        Site site = siteRepository.findByName(siteName)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "존재하지 않는 현장입니다."
+                ));
+
+        return site.getId();
     }
 
     @Transactional(readOnly = true)

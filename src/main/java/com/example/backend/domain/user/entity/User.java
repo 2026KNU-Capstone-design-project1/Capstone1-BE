@@ -46,7 +46,8 @@ public class User {
             String name,
             Long hp,
             String email,
-            String role
+            String role,
+            Long siteId
     ) {
         this.loginId = loginId;
         this.password = password;
@@ -54,7 +55,7 @@ public class User {
         this.hp = hp;
         this.email = email;
         this.role = role;
-        this.siteId = null;
+        this.siteId = siteId;
     }
 
     @PrePersist

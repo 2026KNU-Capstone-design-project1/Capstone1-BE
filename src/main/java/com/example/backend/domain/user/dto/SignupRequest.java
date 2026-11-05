@@ -31,7 +31,10 @@ public record SignupRequest(
                 regexp = "ADMIN|SITE_MANAGER",
                 message = "역할은 ADMIN 또는 SITE_MANAGER여야 합니다."
         )
-        String role
+        String role,
+
+        @Size(max = 255)
+        String siteName
 
 ) {
 }
