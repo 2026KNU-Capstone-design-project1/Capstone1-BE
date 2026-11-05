@@ -47,6 +47,41 @@ public interface ReportRepository extends JpaRepository<Report, Long>
             ORDER BY r.created_at DESC NULLS LAST, r.id DESC
             """, nativeQuery = true)
     List<ReportListItem> findReportList();
+
+        interface CollectionDetailRow
+        {
+            Long getReportId();
+            String getTitle();
+            String getAnalysisPeriod();
+            Long getIncludedRiskCount();
+            String getDetailPayload();
+        }
+
+        @Query(value = """
+            SELECT r.id AS "reportId",
+                   r.title AS "title",
+                   to_char(month_start.value - interval '1 month', 'YYYY.MM.DD')
+                       || '~' ||
+                   to_char(month_start.value - interval '1 day', 'YYYY.MM.DD')
+                       AS "analysisPeriod",
+                   (
+                       SELECT count(DISTINCT link.risk_issue_id)
+                       FROM report_risk_issues link
+                       WHERE link.report_id = r.id
+                   ) AS "includedRiskCount",
+                   CAST(r.detail_payload AS text) AS "detailPayload"
+            FROM reports r CROSS JOIN LATERAL (
+                SELECT date_trunc(
+                    'month', r.created_at AT TIME ZONE 'Asia/Seoul'
+                ) AS value
+            ) month_start
+            WHERE r.id = :reportId AND r.report_type = 'COLLECTION'
+            """, nativeQuery = true)
+        java.util.Optional<CollectionDetailRow> findCollectionDetail(
+                @org.springframework.data.repository.query.Param("reportId")
+                Long reportId
+        );
+
         @Query(value = """
         SELECT * FROM reports WHERE id = :reportId AND report_type = 'INDIVIDUAL'
             """, nativeQuery = true)
