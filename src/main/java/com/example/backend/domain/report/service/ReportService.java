@@ -161,9 +161,14 @@ public class ReportService {
                 .toList();
     }
 
+    public List<ReportRepository.ReportListItem> getReportList()
+    {
+        return reportRepository.findReportList();
+    }
+
     public ReportResponse getIndividualReport(Long reportId)
     {
-        Report report = reportRepository.findById(reportId)
+        Report report = reportRepository.findIndividualById(reportId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "보고서를 찾을 수 없습니다."
