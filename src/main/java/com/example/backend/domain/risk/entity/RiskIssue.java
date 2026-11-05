@@ -5,6 +5,10 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
+import java.util.Map;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 @Entity
 @Table(name = "risks_issue")
 public class RiskIssue {
@@ -57,6 +61,13 @@ public class RiskIssue {
 
     @Column(name = "user_id")
     private Long userId;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "bbox", columnDefinition = "jsonb")
+    private Map<String, Double> bbox;
 
     protected RiskIssue() {
     }
@@ -159,4 +170,8 @@ public class RiskIssue {
     public String getLocation() {
         return location;
     }
+
+    public String getImageUrl() { return imageUrl; }
+
+    public Map<String, Double> getBbox() { return bbox; }
 }

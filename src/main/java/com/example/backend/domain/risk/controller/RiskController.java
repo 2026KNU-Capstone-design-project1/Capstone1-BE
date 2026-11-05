@@ -1,17 +1,19 @@
 package com.example.backend.domain.risk.controller;
 
 import com.example.backend.domain.risk.dto.RiskCreateRequest;
+import com.example.backend.domain.risk.dto.RiskDetailResponse;
+import com.example.backend.domain.risk.dto.RiskManagerUpdateRequest;
 import com.example.backend.domain.risk.dto.RiskResponse;
 import com.example.backend.domain.risk.dto.RiskStatusUpdateRequest;
 import com.example.backend.domain.risk.service.RiskService;
-import com.example.backend.domain.risk.dto.RiskManagerUpdateRequest;
 
 import jakarta.validation.Valid;
 
-import java.net.URI;
-import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/risks")
@@ -44,7 +46,7 @@ public class RiskController {
     }
 
     @GetMapping("/{riskId}")
-    public RiskResponse getRisk(
+    public RiskDetailResponse getRisk(
             @PathVariable("riskId") Long id
     ) {
         return riskService.getRisk(id);

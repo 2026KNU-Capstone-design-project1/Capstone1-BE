@@ -1,17 +1,24 @@
 package com.example.backend.domain.risk.service;
 
 import com.example.backend.domain.risk.dto.RiskCreateRequest;
+import com.example.backend.domain.risk.dto.RiskDetailResponse;
+import com.example.backend.domain.risk.dto.RiskHistoryResponse;
+import com.example.backend.domain.risk.dto.RiskManagerUpdateRequest;
 import com.example.backend.domain.risk.dto.RiskResponse;
 import com.example.backend.domain.risk.dto.RiskStatusUpdateRequest;
+import com.example.backend.domain.risk.entity.RiskHistory;
 import com.example.backend.domain.risk.entity.RiskIssue;
+import com.example.backend.domain.risk.repository.RiskHistoryRepository;
 import com.example.backend.domain.risk.repository.RiskRepository;
-import com.example.backend.domain.risk.dto.RiskManagerUpdateRequest;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -19,9 +26,14 @@ import java.util.List;
 public class RiskService {
 
     private final RiskRepository riskRepository;
+    private final RiskHistoryRepository riskHistoryRepository;
 
-    public RiskService(RiskRepository riskRepository) {
+    public RiskService(
+            RiskRepository riskRepository,
+            RiskHistoryRepository riskHistoryRepository
+    ) {
         this.riskRepository = riskRepository;
+        this.riskHistoryRepository = riskHistoryRepository;
     }
 
     @Transactional
@@ -46,6 +58,14 @@ public class RiskService {
 
         RiskIssue savedRisk = riskRepository.save(risk);
 
+        riskHistoryRepository.save(new RiskHistory(
+                savedRisk.getId(),
+                savedRisk.getStatus(),
+                savedRisk.getCreatedAt(),
+                "DETECTED",
+                1L
+        ));
+
         return toResponse(savedRisk);
     }
 
@@ -68,8 +88,40 @@ public class RiskService {
                 .toList();
     }
 
-    public RiskResponse getRisk(Long id) {
-        return toResponse(findRisk(id));
+    public RiskDetailResponse getRisk(Long id) {
+        RiskIssue risk = findRisk(id);
+
+        String facilityName = risk.getFacilityId() == null
+                ? null
+                : riskRepository.findFacilityName(risk.getFacilityId());
+
+        RiskRepository.FacilityContext context = risk.getFacilityId() == null
+                ? null
+                : riskRepository.findFacilityContext(risk.getFacilityId());
+
+        List<RiskHistoryResponse> history = riskHistoryRepository
+                .findByRiskIssueIdOrderByChangedAtAscIdAsc(id)
+                .stream()
+                .map(RiskHistoryResponse::from)
+                .toList();
+
+        List<RiskDetailResponse.RelatedVideoResponse> relatedVideos =
+                riskRepository.findRelatedVideos(id).stream()
+                        .map(video -> new RiskDetailResponse.RelatedVideoResponse(
+                                video.getVideoId(),
+                                video.getVideoUrl()))
+                        .toList();
+
+        return RiskDetailResponse.from(
+                toResponse(risk),
+                facilityName,
+                history,
+                context == null ? null : context.getSiteName(),
+                context == null ? null : context.getZoneName(),
+                risk.getImageUrl(),
+                risk.getBbox(),
+                relatedVideos
+        );
     }
 
     @Transactional
@@ -79,8 +131,23 @@ public class RiskService {
     ) {
         RiskIssue risk = findRisk(id);
 
-        risk.updateStatus(request.status());
+        if (risk.getStatus() == request.status())
+        {
+            return toResponse(risk);
+        }
 
+        risk.updateStatus(request.status());
+        OffsetDateTime changedAt = risk.getResolvedAt() != null
+                ? risk.getResolvedAt()
+                : OffsetDateTime.now(ZoneOffset.UTC);
+
+        riskHistoryRepository.save(new RiskHistory(
+                risk.getId(),
+                risk.getStatus(),
+                changedAt,
+                "STATUS_CHANGED",
+                riskHistoryRepository.findCurrentCycle(risk.getId())
+        ));
         return toResponse(risk);
     }
 
