@@ -35,4 +35,11 @@ public interface ReportRepository extends JpaRepository<Report, Long>
             ORDER BY r.created_at DESC NULLS LAST, r.id DESC
             """, nativeQuery = true)
     List<ReportListItem> findReportList();
+        @Query(value = """
+        SELECT * FROM reports WHERE id = :reportId AND report_type = 'INDIVIDUAL'
+            """, nativeQuery = true)
+        java.util.Optional<Report> findIndividualById(
+                @org.springframework.data.repository.query.Param("reportId")
+                Long reportId
+        );
 }

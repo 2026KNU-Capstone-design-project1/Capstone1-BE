@@ -13,12 +13,14 @@ public interface ReportRiskIssueRepository
             Long reportId
     );
 
-    @Query("""
-            SELECT link.reportId
-            FROM ReportRiskIssue link
-            GROUP BY link.reportId
-            HAVING COUNT(link.id) = 1
-            """)
+    @Query(value = """
+            SELECT link.report_id
+            FROM report_risk_issues link
+            JOIN reports r ON r.id = link.report_id
+            WHERE r.report_type = 'INDIVIDUAL'
+            GROUP BY link.report_id
+            HAVING COUNT(*) = 1
+            """, nativeQuery = true)
     List<Long> findIndividualReportIds();
 
     @Query("""
