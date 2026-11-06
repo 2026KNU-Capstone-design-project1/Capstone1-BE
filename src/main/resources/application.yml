@@ -1,0 +1,31 @@
+jwt:
+    expiration: 3600000
+    secret: ${JWT_TOKEN}
+spring:
+    datasource:
+        driver-class-name: org.postgresql.Driver
+        password: ${DB_PASSWORD}
+        url: ${DB_URL}
+        username: ${DB_USERNAME}
+    jpa:
+        hibernate:
+            ddl-auto: update
+        properties:
+            hibernate:
+                format_sql: true
+        show-sql: true
+    servlet:
+        multipart:
+            max-file-size: 25MB
+            max-request-size: 25MB
+cloud:
+  aws:
+    s3:
+      bucket: ${S3_BUCKET:virnect-safety-assets-2026}
+      presigned-url-expiration: 10m
+      path:
+        detection: detections
+        risk-thumbnail: risk-thumbnails
+        video: videos
+    region:
+      static: ${AWS_REGION:ap-southeast-2}
