@@ -1,5 +1,6 @@
-package com.example.backend.domain.risk.entity;
+package com.example.backend.domain.history.entity;
 
+import com.example.backend.domain.risk.entity.RiskStatus;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;

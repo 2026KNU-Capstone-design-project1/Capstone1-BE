@@ -1,6 +1,6 @@
 package com.example.backend.domain.risk.repository;
 
-import com.example.backend.domain.risk.entity.RiskHistory;
+import com.example.backend.domain.history.entity.RiskHistory;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -1,6 +1,6 @@
 package com.example.backend.domain.risk.dto;
 
-import com.example.backend.domain.risk.entity.RiskHistory;
+import com.example.backend.domain.history.entity.RiskHistory;
 import com.example.backend.domain.risk.entity.RiskStatus;
 
 import java.time.OffsetDateTime;
