@@ -29,3 +29,5 @@ cloud:
         video: videos
     region:
       static: ${AWS_REGION:ap-southeast-2}
+anthropic:
+  model: ${ANTHROPIC_MODEL:claude-haiku-5-5}
