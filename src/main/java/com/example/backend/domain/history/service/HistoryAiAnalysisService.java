@@ -61,8 +61,8 @@ public class HistoryAiAnalysisService {
         this.objectMapper = objectMapper;
     }
 
-    public HistoryAiAnalysisResponse analyze() {
-        HistoryResponse history = historyService.getHistory();
+    public HistoryAiAnalysisResponse analyze(String loginId) {
+        HistoryResponse history = historyService.getHistory(loginId);
         HistoryAiAnalysisInput input = toAnalysisInput(history);
         String historyJson;
 

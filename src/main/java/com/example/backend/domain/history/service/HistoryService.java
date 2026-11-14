@@ -26,12 +26,12 @@ public class HistoryService {
         this.historyRepository = historyRepository;
     }
 
-    public HistoryResponse getHistory() {
+    public HistoryResponse getHistory(String loginId) {
         OffsetDateTime daysAgo = OffsetDateTime.now(ZoneOffset.UTC)
                 .minusDays(LONG_TERM_DAYS);
 
         Map<Long, List<HistoryResponse.HistoryEvent>> eventsByRiskId =
-                historyRepository.findHistoryEvents()
+                historyRepository.findHistoryEvents(loginId)
                         .stream()
                         .collect(Collectors.groupingBy(
                                 HistoryRepository.HistoryEventView::getRiskIssueId,
@@ -42,7 +42,7 @@ public class HistoryService {
                         ));
 
         List<HistoryResponse.RiskHistoryItem> histories = historyRepository
-                .findHistoryItems()
+                .findHistoryItems(loginId)
                 .stream()
                 .map(item -> toHistoryItem(
                         item,
@@ -54,9 +54,12 @@ public class HistoryService {
                 .toList();
 
         return new HistoryResponse(
-                historyRepository.countRepeatedDetectionRisks(),
-                historyRepository.countLongTermUnresolvedRisks(daysAgo),
-                historyRepository.countRedetectedAfterActionRisks(),
+                historyRepository.countRepeatedDetectionRisks(loginId),
+                historyRepository.countLongTermUnresolvedRisks(
+                        daysAgo,
+                        loginId
+                ),
+                historyRepository.countRedetectedAfterActionRisks(loginId),
                 null,
                 histories
         );
