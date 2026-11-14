@@ -4,6 +4,7 @@ import com.example.backend.domain.history.dto.HistoryResponse;
 import com.example.backend.domain.history.dto.HistoryAiAnalysisResponse;
 import com.example.backend.domain.history.service.HistoryAiAnalysisService;
 import com.example.backend.domain.history.service.HistoryService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,12 +27,17 @@ public class HistoryController {
     }
 
     @GetMapping
-    public ResponseEntity<HistoryResponse> history() {
-        return ResponseEntity.ok(historyService.getHistory());
+    public ResponseEntity<HistoryResponse> history(
+            @AuthenticationPrincipal String loginId
+    ) {
+        return ResponseEntity.ok(historyService.getHistory(loginId));
     }
 
     @PostMapping("/ai-analysis")
-    public ResponseEntity<HistoryAiAnalysisResponse> analyzeHistory() {
-        return ResponseEntity.ok(historyAiAnalysisService.analyze());
+    public ResponseEntity<HistoryAiAnalysisResponse> analyzeHistory(
+            @AuthenticationPrincipal String loginId
+    ) {
+        return ResponseEntity.ok(historyAiAnalysisService.analyze(loginId));
     }
+
 }

@@ -15,7 +15,16 @@ public interface HistoryRepository extends Repository<RiskIssue, Long> {
     @Query("""
             select count(distinct firstDetection.riskIssueId)
             from RiskHistory firstDetection
-            where firstDetection.eventType = 'DETECTED'
+            join RiskIssue risk
+              on risk.id = firstDetection.riskIssueId
+            join Facility facility
+              on facility.id = risk.facilityId
+            join facility.zone zone
+            join zone.site site
+            join User managedUser
+              on managedUser.id = site.userId
+            where managedUser.loginId = :loginId
+              and firstDetection.eventType = 'DETECTED'
               and exists (
                   select laterDetection.id
                   from RiskHistory laterDetection
@@ -24,12 +33,23 @@ public interface HistoryRepository extends Repository<RiskIssue, Long> {
                     and laterDetection.id > firstDetection.id
               )
             """)
-    long countRepeatedDetectionRisks();
+    long countRepeatedDetectionRisks(
+            @Param("loginId") String loginId
+    );
 
     @Query("""
             select count(distinct detection.riskIssueId)
             from RiskHistory detection
-            where detection.eventType = 'DETECTED'
+            join RiskIssue risk
+              on risk.id = detection.riskIssueId
+            join Facility facility
+              on facility.id = risk.facilityId
+            join facility.zone zone
+            join zone.site site
+            join User managedUser
+              on managedUser.id = site.userId
+            where managedUser.loginId = :loginId
+              and detection.eventType = 'DETECTED'
               and detection.changedAt <= :daysAgo
               and not exists (
                   select resolved.id
@@ -40,13 +60,23 @@ public interface HistoryRepository extends Repository<RiskIssue, Long> {
               )
             """)
     long countLongTermUnresolvedRisks(
-            @Param("daysAgo") OffsetDateTime daysAgo
+            @Param("daysAgo") OffsetDateTime daysAgo,
+            @Param("loginId") String loginId
     );
 
     @Query("""
             select count(distinct redetected.riskIssueId)
             from RiskHistory redetected
-            where redetected.eventType = 'DETECTED'
+            join RiskIssue risk
+              on risk.id = redetected.riskIssueId
+            join Facility facility
+              on facility.id = risk.facilityId
+            join facility.zone zone
+            join zone.site site
+            join User managedUser
+              on managedUser.id = site.userId
+            where managedUser.loginId = :loginId
+              and redetected.eventType = 'DETECTED'
               and exists (
                   select resolved.id
                   from RiskHistory resolved
@@ -55,7 +85,9 @@ public interface HistoryRepository extends Repository<RiskIssue, Long> {
                     and resolved.id < redetected.id
               )
             """)
-    long countRedetectedAfterActionRisks();
+    long countRedetectedAfterActionRisks(
+            @Param("loginId") String loginId
+    );
 
     @Query("""
             select risk.id as riskId,
@@ -68,11 +100,14 @@ public interface HistoryRepository extends Repository<RiskIssue, Long> {
                    count(detection.id) as detectionCount,
                    risk.status as status
             from RiskIssue risk
-            left join Facility facility on facility.id = risk.facilityId
-            left join facility.zone zone
+            join Facility facility on facility.id = risk.facilityId
+            join facility.zone zone
+            join zone.site site
+            join User managedUser on managedUser.id = site.userId
             left join RiskHistory detection
                    on detection.riskIssueId = risk.id
                   and detection.eventType = 'DETECTED'
+            where managedUser.loginId = :loginId
             group by risk.id,
                      risk.riskType,
                      risk.hazard,
@@ -80,7 +115,9 @@ public interface HistoryRepository extends Repository<RiskIssue, Long> {
                      facility.name,
                      risk.status
             """)
-    List<RiskHistoryItemView> findHistoryItems();
+    List<RiskHistoryItemView> findHistoryItems(
+            @Param("loginId") String loginId
+    );
 
     @Query("""
             select history.riskIssueId as riskIssueId,
@@ -90,9 +127,20 @@ public interface HistoryRepository extends Repository<RiskIssue, Long> {
                    history.eventType as eventType,
                    history.cycle as cycle
             from RiskHistory history
+            join RiskIssue risk
+              on risk.id = history.riskIssueId
+            join Facility facility
+              on facility.id = risk.facilityId
+            join facility.zone zone
+            join zone.site site
+            join User managedUser
+              on managedUser.id = site.userId
+            where managedUser.loginId = :loginId
             order by history.riskIssueId, history.changedAt, history.id
             """)
-    List<HistoryEventView> findHistoryEvents();
+    List<HistoryEventView> findHistoryEvents(
+            @Param("loginId") String loginId
+    );
 
     interface RiskHistoryItemView {
         Long getRiskId();
