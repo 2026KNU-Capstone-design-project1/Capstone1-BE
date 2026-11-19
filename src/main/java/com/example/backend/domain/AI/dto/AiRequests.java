@@ -18,6 +18,11 @@ public final class AiRequests {
             @Positive
             Long videoId,
 
+            @JsonProperty("facility_id")
+            @NotNull
+            @Positive
+            Long facilityId,
+
             @JsonProperty("video_url")
             @NotBlank
             String videoUrl,
