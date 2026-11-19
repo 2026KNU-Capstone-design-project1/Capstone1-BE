@@ -244,12 +244,7 @@ public class ReportService {
             Report report,
             RiskIssue risk
     ) {
-        String imageUrl = risk.getImageUrl() == null
-                || risk.getImageUrl().isBlank()
-                ? null
-                : storageService.createSignedDownloadUrl(
-                        risk.getImageUrl()
-                );
+        String imageUrl = resolveImageUrl(risk.getImageUrl());
 
         return new ReportResponse(
                 report.getId(),
@@ -286,5 +281,18 @@ public class ReportService {
     private String normalize(String value)
     {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String resolveImageUrl(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        if (value.startsWith("https://")
+                || value.startsWith("http://")) {
+            return value;
+        }
+
+        return storageService.createSignedDownloadUrl(value);
     }
 }
