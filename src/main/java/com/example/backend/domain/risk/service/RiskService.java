@@ -109,7 +109,15 @@ public class RiskService {
                 .map(RiskHistoryResponse::from)
                 .toList();
 
-        List<RiskDetailResponse.RelatedVideoResponse> relatedVideos = null;
+        List<RiskDetailResponse.RelatedVideoResponse> relatedVideos =
+                riskRepository.findRelatedVideos(id).stream()
+                        .map(video ->
+                                new RiskDetailResponse.RelatedVideoResponse(
+                                        video.getVideoId(),
+                                        video.getVideoUrl()
+                                )
+                        )
+                        .toList();
 
         String imageUrl = resolveImageUrl(risk.getImageUrl());
 
