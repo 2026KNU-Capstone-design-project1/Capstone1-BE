@@ -31,3 +31,8 @@ cloud:
       static: ${AWS_REGION:ap-southeast-2}
 anthropic:
   model: ${ANTHROPIC_MODEL:claude-haiku-5-5}
+
+ai:
+  preprocess-base-url: ${AI_PREPROCESS_BASE_URL:}
+  llm-base-url: ${AI_LLM_BASE_URL:}
+  request-timeout-seconds: ${AI_REQUEST_TIMEOUT_SECONDS:300}
