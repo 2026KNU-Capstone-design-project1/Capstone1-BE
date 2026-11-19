@@ -29,9 +29,11 @@ public class AiIntegrationService {
     private final String preprocessBaseUrl;
     private final String llmBaseUrl;
     private final Duration requestTimeout;
+    private final AiResultSaveService resultSaveService;
 
     public AiIntegrationService(
             ObjectMapper objectMapper,
+            AiResultSaveService resultSaveService,
 
             @Value("${ai.preprocess-base-url:}")
             String preprocessBaseUrl,
@@ -43,6 +45,7 @@ public class AiIntegrationService {
             long requestTimeoutSeconds
     ) {
         this.objectMapper = objectMapper;
+        this.resultSaveService = resultSaveService;
         this.preprocessBaseUrl = preprocessBaseUrl;
         this.llmBaseUrl = llmBaseUrl;
         this.requestTimeout = Duration.ofSeconds(requestTimeoutSeconds);
@@ -51,11 +54,24 @@ public class AiIntegrationService {
                 .build();
     }
 
-    public Map<String, Object> analyzeVideo(AiRequests.AnalyzeVideo request) {
+    public Map<String, Object> analyzeVideo(
+            AiRequests.AnalyzeVideo request,
+            String loginId
+    ) {
+        Map<String, Object> siteInfo =
+                resultSaveService.validateTarget(request, loginId);
+
         validateVideoUrl(request.videoUrl());
 
-        URI preprocessUri = endpoint(preprocessBaseUrl, "/predict/video");
-        URI assessUri = endpoint(llmBaseUrl, "/assess");
+        URI preprocessUri = endpoint(
+                preprocessBaseUrl,
+                "/predict/video"
+        );
+
+        URI assessUri = endpoint(
+                llmBaseUrl,
+                "/assess"
+        );
 
         Map<String, Object> preprocessRequest = new LinkedHashMap<>();
         preprocessRequest.put("video_id", request.videoId());
@@ -63,11 +79,16 @@ public class AiIntegrationService {
         preprocessRequest.put("include_relations", true);
         preprocessRequest.put("spec_only", false);
 
-        JsonNode preprocessing = postJson(preprocessUri, preprocessRequest);
+        JsonNode preprocessing = postJson(
+                preprocessUri,
+                preprocessRequest
+        );
 
         JsonNode responseVideoId = preprocessing.get("video_id");
+
         if (responseVideoId == null
-                || !responseVideoId.asText().equals(request.videoId().toString())) {
+                || !responseVideoId.asText()
+                .equals(request.videoId().toString())) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "전처리 응답의 video_id가 요청과 다릅니다."
@@ -76,7 +97,7 @@ public class AiIntegrationService {
 
         List<Map<String, Object>> assessRequests = buildAssessRequests(
                 preprocessing,
-                request.siteInfo(),
+                siteInfo,
                 request.workInfo(),
                 HttpStatus.BAD_GATEWAY
         );
@@ -84,7 +105,10 @@ public class AiIntegrationService {
         List<JsonNode> assessmentResults = new ArrayList<>();
 
         for (Map<String, Object> assessRequest : assessRequests) {
-            JsonNode assessment = postJson(assessUri, assessRequest);
+            JsonNode assessment = postJson(
+                    assessUri,
+                    assessRequest
+            );
 
             if (!assessment.path("assessments").isArray()) {
                 throw new ResponseStatusException(
@@ -96,12 +120,22 @@ public class AiIntegrationService {
             assessmentResults.add(assessment);
         }
 
+        AiResultSaveService.SaveResult saved = resultSaveService.save(
+                request,
+                loginId,
+                preprocessing,
+                assessRequests,
+                assessmentResults
+        );
+
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("video_id", request.videoId());
         response.put("scene_count", assessRequests.size());
         response.put("preprocessing", preprocessing);
         response.put("assess_requests", assessRequests);
         response.put("assessment_results", assessmentResults);
+        response.put("already_saved", saved.alreadySaved());
+        response.put("saved_items", saved.items());
 
         return response;
     }
