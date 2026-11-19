@@ -174,4 +174,12 @@ public class RiskIssue {
     public String getImageUrl() { return imageUrl; }
 
     public Map<String, Double> getBbox() { return bbox; }
+
+    public void updateRepresentativeImage(
+            String imageUrl,
+            Map<String, Double> bbox
+    ) {
+        this.imageUrl = imageUrl;
+        this.bbox = bbox;
+    }
 }
