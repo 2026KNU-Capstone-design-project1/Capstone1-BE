@@ -12,7 +12,6 @@ import com.example.backend.domain.risk.repository.RiskHistoryRepository;
 import com.example.backend.domain.risk.repository.RiskRepository;
 import com.example.backend.global.storage.S3StorageService;
 
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,14 +80,14 @@ public class RiskService {
             );
         }
 
-        Sort sort = Sort.by(Sort.Direction.DESC, "id");
-
-        List<RiskIssue> risks = facilityId == null
-                ? riskRepository.findAll(sort)
-                : riskRepository.findByFacilityId(facilityId, sort);
-
-        return risks.stream()
-                .map(this::toResponse)
+        return riskRepository.findAllWithFacilityAndZone(facilityId)
+                .stream()
+                .map(risk -> RiskResponse.from(
+                        risk.getRisk(),
+                        risk.getManagerName(),
+                        risk.getFacilityName(),
+                        risk.getZoneName()
+                ))
                 .toList();
     }
 
