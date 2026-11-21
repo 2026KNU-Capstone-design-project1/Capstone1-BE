@@ -156,25 +156,43 @@ public class AiResultSaveService {
                 );
             }
 
-            JsonNode detections = scene.path("detections");
+            List<JsonNode> candidates = AiSceneCandidates.from(
+                    scene,
+                    objectMapper,
+                    HttpStatus.BAD_GATEWAY
+            );
             JsonNode assessments = response.path("assessments");
 
-            if (!detections.isArray()
-                    || !assessments.isArray()
-                    || detections.size() != assessments.size()) {
+            JsonNode detections = scene.path("detections");
+
+            if (detections.isArray()
+                    && detections.isEmpty()
+                    && !candidates.isEmpty()
+                    && assessments.isArray()
+                    && assessments.isEmpty()) {
+                continue;
+            }
+
+            if (!assessments.isArray()
+                    || candidates.size() != assessments.size()) {
                 throw invalidResponse(
-                        "감지 수와 개별 평가 수가 다릅니다."
+                        "위험 후보 수와 개별 평가 수가 다릅니다. 후보: "
+                                + candidates.size()
+                                + ", 평가: "
+                                + (assessments.isArray()
+                                ? assessments.size()
+                                : "배열 아님")
                 );
             }
 
-            if (detections.isEmpty()) {
+            if (candidates.isEmpty()) {
                 continue;
             }
 
             List<JsonNode> remaining = new ArrayList<>();
             assessments.forEach(remaining::add);
 
-            for (JsonNode detection : detections) {
+            for (JsonNode detection : candidates) {
                 JsonNode assessment = matchAssessment(
                         detection,
                         remaining
@@ -241,6 +259,20 @@ public class AiResultSaveService {
         );
 
         if (!existing.isEmpty()) {
+            String imageKey = text(scene, "image_url");
+
+            if (imageKey != null) {
+                jdbc.update(
+                        """
+                        UPDATE risk_frames
+                        SET image_url = :imageUrl
+                        WHERE id = :frameId
+                        """,
+                        new MapSqlParameterSource()
+                                .addValue("imageUrl", imageKey)
+                                .addValue("frameId", existing.getFirst())
+                );
+            }
             return existing.getFirst();
         }
 
@@ -397,17 +429,48 @@ public class AiResultSaveService {
         );
 
         if (existing != null) {
+            String imageKey = text(scene, "image_url");
+
+            if (imageKey != null) {
+                RiskIssue existingRisk = riskRepository
+                        .findById(existing.riskId())
+                        .orElseThrow(() -> invalidResponse(
+                                "기존 위험을 찾을 수 없습니다."
+                        ));
+
+                existingRisk.updateRepresentativeImage(
+                        imageKey,
+                        bbox
+                );
+            }
             return existing;
         }
 
-        JsonNode confidence = detection.get("confidence");
+        JsonNode confidenceNode = detection.get("confidence");
+        Double confidence = null;
+        boolean spatial = "spatial".equals(
+                text(detection, "source")
+        );
 
-        if (confidence == null
-                || !confidence.isNumber()
-                || confidence.asDouble() < 0
-                || confidence.asDouble() > 1) {
+        if (confidenceNode != null && !confidenceNode.isNull()) {
+            if (!confidenceNode.isNumber()) {
+                throw invalidResponse(
+                        "confidence는 0~1 숫자여야 합니다."
+                );
+            }
+
+            confidence = confidenceNode.asDouble();
+
+            if (!Double.isFinite(confidence)
+                    || confidence < 0
+                    || confidence > 1) {
+                throw invalidResponse(
+                        "confidence는 0~1 숫자여야 합니다."
+                );
+            }
+        } else if (!spatial) {
             throw invalidResponse(
-                    "confidence는 0~1 숫자여야 합니다."
+                    "YOLO 감지 결과에 confidence가 필요합니다."
             );
         }
 
@@ -465,7 +528,11 @@ public class AiResultSaveService {
                                 "bbox",
                                 objectMapper.writeValueAsString(bbox)
                         )
-                        .addValue("confidence", confidence.asDouble())
+                        .addValue(
+                                "confidence",
+                                confidence,
+                                java.sql.Types.NUMERIC
+                        )
                         .addValue("riskId", savedRisk.getId())
                         .addValue("frameId", frameId)
         );
@@ -511,9 +578,20 @@ public class AiResultSaveService {
     ) {
         String hazard = text(detection, "hazard");
 
+        if (hazard == null) {
+            throw invalidResponse("위험 후보의 hazard가 없습니다.");
+        }
+
+        String normalizedHazard = hazard.trim();
+
         List<JsonNode> matches = assessments.stream()
-                .filter(item -> hazard != null
-                        && hazard.equals(text(item, "hazard")))
+                .filter(item -> {
+                    String assessedHazard = text(item, "hazard");
+                    return assessedHazard != null
+                            && normalizedHazard.equals(
+                            assessedHazard.trim()
+                    );
+                })
                 .toList();
 
         if (matches.size() == 1) {

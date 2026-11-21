@@ -114,7 +114,7 @@ public class RiskService {
                         .map(video ->
                                 new RiskDetailResponse.RelatedVideoResponse(
                                         video.getVideoId(),
-                                        video.getVideoUrl()
+                                        resolveImageUrl(video.getVideoUrl())
                                 )
                         )
                         .toList();

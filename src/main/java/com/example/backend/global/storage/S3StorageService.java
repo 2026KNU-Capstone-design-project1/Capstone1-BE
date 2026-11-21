@@ -201,6 +201,67 @@ public class S3StorageService {
         return presignDownloadUrl(validateObjectKey(objectKey));
     }
 
+    public String saveAiFrame(
+            Long videoId,
+            long frameIndex,
+            byte[] image,
+            String contentType
+    ) {
+        String normalizedType = normalizeContentType(contentType);
+
+        String extension = switch (normalizedType) {
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/webp" -> ".webp";
+            default -> throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "지원하지 않는 AI 이미지 형식입니다: " + normalizedType
+            );
+        };
+
+        if (videoId == null || videoId <= 0 || frameIndex < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "AI 이미지의 영상 ID 또는 프레임 번호가 올바르지 않습니다."
+            );
+        }
+
+        if (image == null
+                || image.length == 0
+                || image.length > StorageObjectType.RISK_THUMBNAIL.maxSizeBytes()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "AI 이미지는 0바이트보다 크고 20MB 이하여야 합니다."
+            );
+        }
+
+        String objectKey = properties.prefix(
+                StorageObjectType.RISK_THUMBNAIL
+        ) + "/ai/videos/" + videoId
+                + "/frames/" + frameIndex + extension;
+
+        PutObjectRequest putRequest = PutObjectRequest.builder()
+                .bucket(properties.bucket())
+                .key(objectKey)
+                .contentType(normalizedType)
+                .contentLength((long) image.length)
+                .build();
+
+        try {
+            s3Client.putObject(
+                    putRequest,
+                    RequestBody.fromBytes(image)
+            );
+        } catch (SdkException exception) {
+            throw storageFailure(
+                    "AI 대표 이미지 S3 저장에 실패했습니다.",
+                    exception
+            );
+        }
+
+        return objectKey;
+    }
+
     private PresignedDownloadResponse createDownloadResponse(
             String objectKey,
             String contentType,
