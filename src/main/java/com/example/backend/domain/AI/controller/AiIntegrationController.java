@@ -3,6 +3,7 @@ package com.example.backend.domain.AI.controller;
 import com.example.backend.domain.AI.dto.AiRequests;
 import com.example.backend.domain.AI.service.AiIntegrationService;
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -21,8 +22,9 @@ public class AiIntegrationController {
 
     @PostMapping("/yolo")
     public Map<String, Object> analyzeVideo(
-            @Valid @RequestBody AiRequests.AnalyzeVideo request
+            @Valid @RequestBody AiRequests.AnalyzeVideo request,
+            @AuthenticationPrincipal String loginId
     ) {
-        return aiIntegrationService.analyzeVideo(request);
+        return aiIntegrationService.analyzeVideo(request, loginId);
     }
 }

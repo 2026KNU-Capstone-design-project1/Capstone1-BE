@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import com.example.backend.global.storage.S3StorageService;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.net.URI;
@@ -29,9 +31,13 @@ public class AiIntegrationService {
     private final String preprocessBaseUrl;
     private final String llmBaseUrl;
     private final Duration requestTimeout;
+    private final AiResultSaveService resultSaveService;
+    private final S3StorageService storageService;
 
     public AiIntegrationService(
             ObjectMapper objectMapper,
+            AiResultSaveService resultSaveService,
+            S3StorageService storageService,
 
             @Value("${ai.preprocess-base-url:}")
             String preprocessBaseUrl,
@@ -43,6 +49,8 @@ public class AiIntegrationService {
             long requestTimeoutSeconds
     ) {
         this.objectMapper = objectMapper;
+        this.resultSaveService = resultSaveService;
+        this.storageService = storageService;
         this.preprocessBaseUrl = preprocessBaseUrl;
         this.llmBaseUrl = llmBaseUrl;
         this.requestTimeout = Duration.ofSeconds(requestTimeoutSeconds);
@@ -51,11 +59,24 @@ public class AiIntegrationService {
                 .build();
     }
 
-    public Map<String, Object> analyzeVideo(AiRequests.AnalyzeVideo request) {
+    public Map<String, Object> analyzeVideo(
+            AiRequests.AnalyzeVideo request,
+            String loginId
+    ) {
+        Map<String, Object> siteInfo =
+                resultSaveService.validateTarget(request, loginId);
+
         validateVideoUrl(request.videoUrl());
 
-        URI preprocessUri = endpoint(preprocessBaseUrl, "/predict/video");
-        URI assessUri = endpoint(llmBaseUrl, "/assess");
+        URI preprocessUri = endpoint(
+                preprocessBaseUrl,
+                "/predict/video"
+        );
+
+        URI assessUri = endpoint(
+                llmBaseUrl,
+                "/assess"
+        );
 
         Map<String, Object> preprocessRequest = new LinkedHashMap<>();
         preprocessRequest.put("video_id", request.videoId());
@@ -63,11 +84,16 @@ public class AiIntegrationService {
         preprocessRequest.put("include_relations", true);
         preprocessRequest.put("spec_only", false);
 
-        JsonNode preprocessing = postJson(preprocessUri, preprocessRequest);
+        JsonNode preprocessing = postJson(
+                preprocessUri,
+                preprocessRequest
+        );
 
         JsonNode responseVideoId = preprocessing.get("video_id");
+
         if (responseVideoId == null
-                || !responseVideoId.asText().equals(request.videoId().toString())) {
+                || !responseVideoId.asText()
+                .equals(request.videoId().toString())) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "전처리 응답의 video_id가 요청과 다릅니다."
@@ -76,7 +102,7 @@ public class AiIntegrationService {
 
         List<Map<String, Object>> assessRequests = buildAssessRequests(
                 preprocessing,
-                request.siteInfo(),
+                siteInfo,
                 request.workInfo(),
                 HttpStatus.BAD_GATEWAY
         );
@@ -84,7 +110,10 @@ public class AiIntegrationService {
         List<JsonNode> assessmentResults = new ArrayList<>();
 
         for (Map<String, Object> assessRequest : assessRequests) {
-            JsonNode assessment = postJson(assessUri, assessRequest);
+            JsonNode assessment = postJson(
+                    assessUri,
+                    assessRequest
+            );
 
             if (!assessment.path("assessments").isArray()) {
                 throw new ResponseStatusException(
@@ -96,12 +125,28 @@ public class AiIntegrationService {
             assessmentResults.add(assessment);
         }
 
+        JsonNode storagePreprocessing = copyFramesToS3(
+                request.videoId(),
+                preprocessing,
+                assessmentResults
+        );
+
+        AiResultSaveService.SaveResult saved = resultSaveService.save(
+                request,
+                loginId,
+                storagePreprocessing,
+                assessRequests,
+                assessmentResults
+        );
+
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("video_id", request.videoId());
         response.put("scene_count", assessRequests.size());
         response.put("preprocessing", preprocessing);
         response.put("assess_requests", assessRequests);
         response.put("assessment_results", assessmentResults);
+        response.put("already_saved", saved.alreadySaved());
+        response.put("saved_items", saved.items());
 
         return response;
     }
@@ -194,11 +239,193 @@ public class AiIntegrationService {
             assessRequest.put("work_info", workInfo);
             assessRequest.put("source", source);
             assessRequest.put("detections", detections);
+            JsonNode relations = scene.get("relations");
+            if (relations != null && !relations.isNull())
+            {
+                assessRequest.put("relations", relations);
+            }
 
             requests.add(assessRequest);
         }
 
         return requests;
+    }
+
+    private JsonNode copyFramesToS3(
+            Long videoId,
+            JsonNode preprocessing,
+            List<JsonNode> assessmentResults
+    ) {
+        JsonNode copied = objectMapper.readTree(
+                objectMapper.writeValueAsString(preprocessing)
+        );
+        JsonNode scenes = copied.path("results");
+
+        if (!scenes.isArray()
+                || scenes.size() != assessmentResults.size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "대표 이미지 저장 대상과 평가 결과 수가 다릅니다."
+            );
+        }
+
+        for (int index = 0; index < scenes.size(); index++) {
+            JsonNode scene = scenes.get(index);
+            JsonNode assessments = assessmentResults.get(index)
+                    .path("assessments");
+
+            if (!scene.isObject() || !assessments.isArray()) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_GATEWAY,
+                        "대표 이미지 저장 대상 형식이 올바르지 않습니다."
+                );
+            }
+
+            boolean needsImage = false;
+
+            for (JsonNode assessment : assessments) {
+                if (!"관측상 정상".equals(
+                        assessment.path("violation_status").asText()
+                )) {
+                    needsImage = true;
+                    break;
+                }
+            }
+
+            if (!needsImage) {
+                continue;
+            }
+
+            JsonNode imageNode = scene.get("image_url");
+
+            if (imageNode == null
+                    || imageNode.isNull()
+                    || imageNode.asText().isBlank()) {
+                continue;
+            }
+
+            JsonNode frameIndex = scene.get("frame_index");
+
+            if (frameIndex == null
+                    || !frameIndex.isIntegralNumber()
+                    || !frameIndex.canConvertToLong()
+                    || frameIndex.asLong() < 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_GATEWAY,
+                        "대표 이미지의 frame_index가 올바르지 않습니다."
+                );
+            }
+
+            String objectKey = downloadAndSaveFrame(
+                    videoId,
+                    frameIndex.asLong(),
+                    imageNode.asText()
+            );
+
+            ((ObjectNode) scene).put("image_url", objectKey);
+        }
+
+        return copied;
+    }
+
+    private String downloadAndSaveFrame(
+            Long videoId,
+            long frameIndex,
+            String imageUrl
+    ) {
+        URI imageUri;
+
+        try {
+            imageUri = URI.create(imageUrl.trim());
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "AI 대표 이미지 URL 형식이 올바르지 않습니다.",
+                    exception
+            );
+        }
+
+        URI allowedOrigin = endpoint(preprocessBaseUrl, "");
+
+        if (imageUri.getHost() == null
+                || imageUri.getUserInfo() != null
+                || !allowedOrigin.getScheme().equalsIgnoreCase(
+                imageUri.getScheme()
+        )
+                || !allowedOrigin.getHost().equalsIgnoreCase(
+                imageUri.getHost()
+        )
+                || allowedOrigin.getPort() != imageUri.getPort()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "AI 대표 이미지는 설정된 전처리 서버 주소여야 합니다."
+            );
+        }
+
+        HttpRequest imageRequest = HttpRequest.newBuilder(imageUri)
+                .timeout(requestTimeout)
+                .header("Accept", "image/jpeg, image/png, image/webp")
+                .GET()
+                .build();
+
+        try {
+            HttpResponse<java.io.InputStream> imageResponse =
+                    httpClient.send(
+                            imageRequest,
+                            HttpResponse.BodyHandlers.ofInputStream()
+                    );
+
+            try (java.io.InputStream input = imageResponse.body()) {
+                if (imageResponse.statusCode() != 200) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_GATEWAY,
+                            "AI 대표 이미지 다운로드 실패: HTTP "
+                                    + imageResponse.statusCode()
+                    );
+                }
+
+                String contentType = imageResponse.headers()
+                        .firstValue("Content-Type")
+                        .orElse("")
+                        .split(";", 2)[0]
+                        .trim()
+                        .toLowerCase(java.util.Locale.ROOT);
+
+                if (!List.of(
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp"
+                ).contains(contentType)) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_GATEWAY,
+                            "AI 대표 이미지 응답이 지원하는 이미지 형식이 아닙니다."
+                    );
+                }
+
+                int maxBytes = 20 * 1024 * 1024;
+                byte[] image = input.readNBytes(maxBytes + 1);
+
+                return storageService.saveAiFrame(
+                        videoId,
+                        frameIndex,
+                        image,
+                        contentType
+                );
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "AI 대표 이미지 저장이 중단됐습니다.",
+                    exception
+            );
+        } catch (IOException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "AI 대표 이미지를 다운로드할 수 없습니다.",
+                    exception
+            );
+        }
     }
 
     private JsonNode postJson(URI uri, Object body) {
