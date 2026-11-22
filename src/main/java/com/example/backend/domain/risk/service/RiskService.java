@@ -108,14 +108,17 @@ public class RiskService {
                 .map(RiskHistoryResponse::from)
                 .toList();
 
-        List<RiskDetailResponse.RelatedVideoResponse> relatedVideos = null;
+        List<RiskDetailResponse.RelatedVideoResponse> relatedVideos =
+                riskRepository.findRelatedVideos(id).stream()
+                        .map(video ->
+                                new RiskDetailResponse.RelatedVideoResponse(
+                                        video.getVideoId(),
+                                        resolveImageUrl(video.getVideoUrl())
+                                )
+                        )
+                        .toList();
 
-        String imageUrl = risk.getImageUrl() == null
-                || risk.getImageUrl().isBlank()
-                ? null
-                : storageService.createSignedDownloadUrl(
-                        risk.getImageUrl()
-                );
+        String imageUrl = resolveImageUrl(risk.getImageUrl());
 
         return RiskDetailResponse.from(
                 toResponse(risk),
@@ -183,5 +186,18 @@ public class RiskService {
                         HttpStatus.NOT_FOUND,
                         "위험요소를 찾을 수 없습니다."
                 ));
+    }
+
+    private String resolveImageUrl(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        if (value.startsWith("https://")
+                || value.startsWith("http://")) {
+            return value;
+        }
+
+        return storageService.createSignedDownloadUrl(value);
     }
 }
