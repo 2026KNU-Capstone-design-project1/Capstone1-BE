@@ -9,6 +9,8 @@ import java.time.OffsetDateTime;
 public record RiskResponse(
         Long id,
         Long facilityId,
+        String facilityName,
+        String zoneName,
         String riskType,
         String hazard,
         RiskStatus status,
@@ -25,11 +27,15 @@ public record RiskResponse(
 
     public static RiskResponse from(
             RiskIssue risk,
-            String managerName
+            String managerName,
+            String facilityName,
+            String zoneName
     ) {
         return new RiskResponse(
                 risk.getId(),
                 risk.getFacilityId(),
+                facilityName,
+                zoneName,
                 risk.getRiskType(),
                 risk.getHazard(),
                 risk.getStatus(),
@@ -43,6 +49,13 @@ public record RiskResponse(
                 managerName,
                 risk.getLocation()
         );
+    }
+
+    public static RiskResponse from(
+            RiskIssue risk,
+            String managerName
+    ) {
+        return from(risk, managerName, null, null);
     }
 
     public static RiskResponse from(RiskIssue risk) {

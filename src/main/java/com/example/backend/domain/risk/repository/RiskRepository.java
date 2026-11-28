@@ -5,16 +5,33 @@ import com.example.backend.domain.risk.entity.RiskIssue;
 import java.util.List;
 
 import com.example.backend.domain.worker.dto.RiskSum;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface RiskRepository extends JpaRepository<RiskIssue, Long>
 {
-    List<RiskIssue> findByFacilityId(
-            Long facilityId,
-            Sort sort
+    interface RiskListView {
+        RiskIssue getRisk();
+        String getFacilityName();
+        String getZoneName();
+        String getManagerName();
+    }
+
+    @Query("""
+            SELECT risk AS risk,
+                   facility.name AS facilityName,
+                   zone.name AS zoneName,
+                   manager.name AS managerName
+            FROM RiskIssue risk
+            LEFT JOIN Facility facility ON facility.id = risk.facilityId
+            LEFT JOIN facility.zone zone
+            LEFT JOIN User manager ON manager.id = risk.userId
+            WHERE (:facilityId IS NULL OR risk.facilityId = :facilityId)
+            ORDER BY risk.id DESC
+            """)
+    List<RiskListView> findAllWithFacilityAndZone(
+            @Param("facilityId") Long facilityId
     );
 
     @Query(
