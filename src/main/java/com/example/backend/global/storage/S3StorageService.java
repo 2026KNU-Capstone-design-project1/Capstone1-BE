@@ -201,6 +201,35 @@ public class S3StorageService {
         return presignDownloadUrl(validateObjectKey(objectKey));
     }
 
+    public void deleteUploadedVideo(String objectKey) {
+        String key = validateObjectKey(objectKey);
+        String videoPrefix = properties.prefix(
+                StorageObjectType.VIDEO
+        ) + "/";
+
+        if (!key.startsWith(videoPrefix)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "영상 경로만 삭제할 수 있습니다."
+            );
+        }
+
+        try {
+            s3Client.deleteObject(
+                    software.amazon.awssdk.services.s3.model
+                            .DeleteObjectRequest.builder()
+                            .bucket(properties.bucket())
+                            .key(key)
+                            .build()
+            );
+        } catch (SdkException exception) {
+            throw storageFailure(
+                    "업로드 영상 정리에 실패했습니다.",
+                    exception
+            );
+        }
+    }
+
     public String saveAiFrame(
             Long videoId,
             long frameIndex,
